@@ -1,6 +1,19 @@
 version: '3.9'
 
 services:
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: project-ci-frontend
+    ports:
+      - '80:80'
+    depends_on:
+      - backend
+    networks:
+      - ci-network
+    restart: unless-stopped
+
   backend:
     build:
       context: ./backend
@@ -48,3 +61,4 @@ networks:
 
 volumes:
   postgres_data:
+    driver: local
