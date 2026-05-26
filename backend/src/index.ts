@@ -4,6 +4,10 @@ import { initDB, pool } from './db/connection';
 const app = express();
 app.use(express.json());
 
+app.get('/', (_req, res) => {
+  res.json({ message: 'Bienvenido al gestor de tareas', version: '1.0.0', status: 'OK' });
+});
+
 app.get('/health', (_req, res) => {
   res.json({ status: 'OK', container: 'backend', mensaje: 'Contenedor 1 activo' });
 });

@@ -1,8 +1,6 @@
 version: '3.9'
 
 services:
-
-  # CONTENEDOR 1 - Backend Node.js
   backend:
     build:
       context: ./backend
@@ -23,7 +21,6 @@ services:
       - ci-network
     restart: unless-stopped
 
-  # CONTENEDOR 2 - PostgreSQL
   db:
     image: postgres:16-alpine
     container_name: project-ci-db
