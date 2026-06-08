@@ -21,31 +21,51 @@ app.get('/health', (_req, res) => {
 });
 
 app.get('/tasks', async (_req, res) => {
-  const result = await pool.query('SELECT * FROM tasks ORDER BY created_at DESC');
-  res.json({ success: true, data: result.rows });
+  try {
+    const result = await pool.query('SELECT * FROM tasks ORDER BY created_at DESC');
+    res.json({ success: true, data: result.rows });
+  } catch {
+    res.status(500).json({ success: false, error: 'Error al obtener las tareas' });
+  }
 });
 
 app.post('/tasks', async (req, res) => {
-  const { title } = req.body as { title: string };
-  const result = await pool.query(
-    'INSERT INTO tasks (title) VALUES ($1) RETURNING *', [title]
-  );
-  res.status(201).json({ success: true, data: result.rows[0] });
+  try {
+    const { title } = req.body as { title: string };
+    if (!title || !title.trim()) {
+      res.status(400).json({ success: false, error: 'El campo title es requerido' });
+      return;
+    }
+    const result = await pool.query(
+      'INSERT INTO tasks (title) VALUES ($1) RETURNING *', [title.trim()]
+    );
+    res.status(201).json({ success: true, data: result.rows[0] });
+  } catch {
+    res.status(500).json({ success: false, error: 'Error al crear la tarea' });
+  }
 });
 
 app.put('/tasks/:id', async (req, res) => {
-  const { id } = req.params;
-  const { completed } = req.body as { completed: boolean };
-  const result = await pool.query(
-    'UPDATE tasks SET completed = $1 WHERE id = $2 RETURNING *', [completed, id]
-  );
-  res.json({ success: true, data: result.rows[0] });
+  try {
+    const { id } = req.params;
+    const { completed } = req.body as { completed: boolean };
+    const result = await pool.query(
+      'UPDATE tasks SET completed = $1 WHERE id = $2 RETURNING *', [completed, id]
+    );
+    res.json({ success: true, data: result.rows[0] });
+  } catch {
+    res.status(500).json({ success: false, error: 'Error al actualizar la tarea' });
+  }
 });
 
 app.delete('/tasks/:id', async (req, res) => {
-  const { id } = req.params;
-  await pool.query('DELETE FROM tasks WHERE id = $1', [id]);
-  res.json({ success: true, message: 'Tarea eliminada' });
+  try {
+    const { id } = req.params;
+    await pool.query('DELETE FROM tasks WHERE id = $1', [id]);
+    res.json({ success: true, message: 'Tarea eliminada' });
+  } catch {
+    res.status(500).json({ success: false, error: 'Error al eliminar la tarea' });
+  }
 });
 
 async function start() {
