@@ -10,13 +10,13 @@ pipeline {
 
         stage('Build') {
             steps {
-                sh 'docker compose build'
+                sh 'docker compose build frontend backend db'
             }
         }
 
         stage('Deploy') {
             steps {
-                sh 'docker compose up -d'
+                sh 'docker compose up -d frontend backend db'
                 sh '''
                     echo "Esperando que el backend este listo..."
                     for i in $(seq 1 20); do
@@ -47,14 +47,14 @@ pipeline {
 
         stage('Cleanup') {
             steps {
-                sh 'docker compose down'
+                sh 'docker compose stop frontend backend db'
             }
         }
     }
 
     post {
         always {
-            sh 'docker compose down || true'
+            sh 'docker compose stop frontend backend db || true'
         }
         success {
             echo 'Pipeline ejecutado correctamente'
