@@ -16,7 +16,12 @@ pipeline {
 
         stage('Deploy') {
             steps {
-                sh 'docker compose up -d frontend backend db'
+                sh '''
+                    docker stop project-ci-frontend project-ci-backend project-ci-db 2>/dev/null || true
+                    docker rm project-ci-frontend project-ci-backend project-ci-db 2>/dev/null || true
+                    docker network create ci-network 2>/dev/null || true
+                    docker compose up -d frontend backend db
+                '''
                 sh '''
                     echo "Esperando que el backend este listo..."
                     for i in $(seq 1 20); do
@@ -44,23 +49,15 @@ pipeline {
                 '''
             }
         }
-
-        stage('Cleanup') {
-            steps {
-                sh 'docker compose stop frontend backend db'
-            }
-        }
     }
 
     post {
-        always {
-            sh 'docker compose stop frontend backend db || true'
-        }
         success {
-            echo 'Pipeline ejecutado correctamente'
+            echo 'Pipeline ejecutado correctamente - app desplegada y corriendo'
         }
         failure {
-            echo 'Pipeline fallo - revisar logs'
+            sh 'docker compose stop frontend backend db || true'
+            echo 'Pipeline fallo - contenedores detenidos, revisar logs'
         }
     }
 }
