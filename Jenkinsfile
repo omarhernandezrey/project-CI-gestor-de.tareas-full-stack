@@ -25,7 +25,7 @@ pipeline {
                 sh '''
                     echo "Esperando que el backend este listo..."
                     for i in $(seq 1 20); do
-                        if curl -sf http://localhost:3000/health > /dev/null 2>&1; then
+                        if docker exec project-ci-backend curl -sf http://localhost:3000/health > /dev/null 2>&1; then
                             echo "Backend listo"
                             break
                         fi
@@ -40,10 +40,10 @@ pipeline {
             steps {
                 sh '''
                     echo "--- TEST 1: Health check ---"
-                    curl -sf http://localhost:3000/health
+                    docker exec project-ci-backend curl -sf http://localhost:3000/health
                     echo ""
                     echo "--- TEST 2: GET /tasks ---"
-                    curl -sf http://localhost:3000/tasks
+                    docker exec project-ci-backend curl -sf http://localhost:3000/tasks
                     echo ""
                     echo "Pruebas completadas exitosamente"
                 '''
