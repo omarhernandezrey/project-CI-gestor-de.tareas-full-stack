@@ -35,11 +35,11 @@ services:
     ports:
       - '3000:3000'
     environment:
-      - DB_HOST=db
-      - DB_PORT=5432
-      - DB_USER=postgres
-      - DB_PASSWORD=postgres123
-      - DB_NAME=project_ci
+      - DB_HOST=${DB_HOST:-db}
+      - DB_PORT=${DB_PORT:-5432}
+      - DB_USER=${DB_USER:-postgres}
+      - DB_PASSWORD=${DB_PASSWORD:-postgres123}
+      - DB_NAME=${DB_NAME:-project_ci}
     depends_on:
       db:
         condition: service_healthy
@@ -53,9 +53,9 @@ services:
     ports:
       - '5432:5432'
     environment:
-      - POSTGRES_USER=postgres
-      - POSTGRES_PASSWORD=postgres123
-      - POSTGRES_DB=project_ci
+      - POSTGRES_USER=${DB_USER:-postgres}
+      - POSTGRES_PASSWORD=${DB_PASSWORD:-postgres123}
+      - POSTGRES_DB=${DB_NAME:-project_ci}
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
