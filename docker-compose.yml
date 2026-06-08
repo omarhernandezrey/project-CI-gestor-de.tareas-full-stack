@@ -1,6 +1,21 @@
 version: '3.9'
 
 services:
+  jenkins:
+    build:
+      context: ./jenkins
+      dockerfile: Dockerfile
+    container_name: project-ci-jenkins
+    ports:
+      - '8080:8080'
+      - '50000:50000'
+    volumes:
+      - jenkins-data:/var/jenkins_home
+      - /var/run/docker.sock:/var/run/docker.sock
+    networks:
+      - ci-network
+    restart: unless-stopped
+
   frontend:
     build:
       context: ./frontend
@@ -61,4 +76,6 @@ networks:
 
 volumes:
   postgres_data:
+    driver: local
+  jenkins-data:
     driver: local
