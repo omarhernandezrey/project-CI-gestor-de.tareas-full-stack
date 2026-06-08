@@ -1,6 +1,10 @@
 pipeline {
     agent any
 
+    environment {
+        BACKEND_URL = 'http://project-ci-backend:3000'
+    }
+
     stages {
         stage('Checkout') {
             steps {
@@ -25,7 +29,7 @@ pipeline {
                 sh '''
                     echo "Esperando que el backend este listo..."
                     for i in $(seq 1 20); do
-                        if docker exec project-ci-backend curl -sf http://localhost:3000/health > /dev/null 2>&1; then
+                        if curl -sf ${BACKEND_URL}/health > /dev/null 2>&1; then
                             echo "Backend listo"
                             break
                         fi
@@ -40,10 +44,10 @@ pipeline {
             steps {
                 sh '''
                     echo "--- TEST 1: Health check ---"
-                    docker exec project-ci-backend curl -sf http://localhost:3000/health
+                    curl -sf ${BACKEND_URL}/health
                     echo ""
                     echo "--- TEST 2: GET /tasks ---"
-                    docker exec project-ci-backend curl -sf http://localhost:3000/tasks
+                    curl -sf ${BACKEND_URL}/tasks
                     echo ""
                     echo "Pruebas completadas exitosamente"
                 '''
