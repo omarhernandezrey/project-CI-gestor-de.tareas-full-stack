@@ -1,0 +1,33 @@
+# codeship-steps.yml
+# Define los pasos del pipeline secuencial y paralelo de Codeship Pro
+
+- name: "Etapa 1 — Tests unitarios (paralelo)"
+  type: parallel
+  steps:
+    - name: "Backend unit tests"
+      service: backend_test
+      command: npm test
+
+    - name: "Frontend unit tests"
+      service: frontend_test
+      command: npm test
+
+- name: "Etapa 2 — Build de imágenes de producción"
+  type: parallel
+  steps:
+    - name: "Build backend image"
+      service: backend_test
+      command: npm run build
+
+    - name: "Build frontend image"
+      service: frontend_test
+      command: npm run build
+
+- name: "Etapa 3 — Tests de integración E2E"
+  service: integration
+  command: /bin/sh -c "sleep 15 && curl -fsS $BACKEND_URL/health && curl -fsS $BACKEND_URL/tasks"
+
+- name: "Etapa 4 — Tag de la imagen (solo en main)"
+  tag: main
+  service: backend_test
+  command: echo "✅ Pipeline completado en rama main — listo para deploy"
