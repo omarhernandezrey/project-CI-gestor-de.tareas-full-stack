@@ -1,0 +1,9 @@
+# codeship/Dockerfile.integration
+# Imagen ligera para ejecutar tests de integración E2E en Codeship Pro
+FROM alpine:3.19
+
+RUN apk add --no-cache curl bash jq
+
+WORKDIR /tests
+
+CMD ["sh"]
