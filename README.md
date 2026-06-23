@@ -1,5 +1,11 @@
 # Project CI — Gestor de Tareas Full Stack
 
+[![Build Status](https://app.travis-ci.com/omarhernandezrey/project-CI-gestor-de.tareas-full-stack.svg?branch=main)](https://app.travis-ci.com/omarhernandezrey/project-CI-gestor-de.tareas-full-stack)
+[![CI - Jenkins](https://img.shields.io/badge/CI-Jenkins-blue?logo=jenkins)](http://localhost:8082)
+[![Codeship Status](https://img.shields.io/badge/Codeship-Pro-purple?logo=codeship)](https://codeship.com)
+[![Docker](https://img.shields.io/badge/Docker-Compose%20v2-2496ED?logo=docker&logoColor=white)](https://docs.docker.com/compose/)
+[![Version](https://img.shields.io/badge/version-3.0.0-success)](https://github.com/omarhernandezrey/project-CI-gestor-de.tareas-full-stack/releases)
+
 Aplicación web de gestión de tareas con arquitectura **full stack containerizada** e
 **integración continua (CI)** mediante Docker y Jenkins.
 

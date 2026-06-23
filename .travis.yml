@@ -1,0 +1,107 @@
+# .travis.yml
+# Pipeline de Integración Continua con Travis CI
+# Proyecto: project-CI-gestor-de.tareas-full-stack
+# Documentación: https://docs.travis-ci.com
+
+os: linux
+dist: jammy
+language: minimal
+
+services:
+  - docker
+
+# Solo construye en ramas relevantes
+branches:
+  only:
+    - main
+    - develop
+    - /^feature\/.*$/
+    - /^release\/.*$/
+    - /^hotfix\/.*$/
+
+# Variables de entorno (no sensibles)
+env:
+  global:
+    - DB_HOST=db
+    - DB_PORT=5432
+    - DB_USER=postgres
+    - DB_PASSWORD=postgres123
+    - DB_NAME=project_ci
+
+# Cache de Docker layers y node_modules
+cache:
+  directories:
+    - $HOME/.npm
+    - $HOME/.docker
+
+before_install:
+  - docker --version
+  - docker compose version
+  - node --version
+  - npm --version
+
+install:
+  - echo "=== Instalando dependencias del backend ==="
+  - (cd backend && npm ci)
+  - echo "=== Instalando dependencias del frontend ==="
+  - (cd frontend && npm ci)
+
+before_script:
+  - echo "=== Construyendo imágenes Docker ==="
+  - docker compose build frontend backend db
+
+script:
+  - echo "=== FASE 1: Tests unitarios backend ==="
+  - (cd backend && npm test)
+
+  - echo "=== FASE 2: Tests unitarios frontend ==="
+  - (cd frontend && npm test)
+
+  - echo "=== FASE 3: Levantar stack para tests de integración ==="
+  - docker compose up -d db backend frontend
+  - sleep 25
+
+  - echo "=== FASE 4: Health check del backend ==="
+  - curl -fsS http://localhost:3002/health
+
+  - echo "=== FASE 5: GET /tasks ==="
+  - curl -fsS http://localhost:3002/tasks
+
+  - echo "=== FASE 6: POST /tasks (smoke test) ==="
+  - |
+    curl -fsS -X POST http://localhost:3002/tasks \
+      -H "Content-Type: application/json" \
+      -d '{"title":"Tarea creada desde Travis CI"}'
+
+  - echo "=== FASE 7: Verificar persistencia ==="
+  - curl -fsS http://localhost:3002/tasks
+
+  - echo "=== FASE 8: Frontend responde en puerto 80 ==="
+  - curl -fsS -I http://localhost | head -1
+
+after_success:
+  - echo "✅ Build exitoso en rama $TRAVIS_BRANCH (PR=$TRAVIS_PULL_REQUEST)"
+
+after_failure:
+  - echo "❌ Build falló - logs de los contenedores:"
+  - docker compose logs --tail=50
+
+after_script:
+  - docker compose down -v
+
+# Notificaciones
+notifications:
+  email:
+    on_success: change
+    on_failure: always
+
+# Stages para diferenciar branch build vs pull request build
+jobs:
+  include:
+    - stage: "Branch Build"
+      if: type = push
+      name: "Build directo desde rama"
+
+    - stage: "Pull Request Build"
+      if: type = pull_request
+      name: "Build de validación de PR"
