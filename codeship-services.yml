@@ -1,0 +1,46 @@
+# codeship-services.yml
+# Define los servicios Docker que Codeship Pro usará durante el pipeline
+# Documentación: https://documentation.codeship.com/pro/
+
+backend_test:
+  build:
+    image: project-ci/backend-test
+    dockerfile: backend/Dockerfile
+  volumes:
+    - ./backend:/app
+  environment:
+    - NODE_ENV=test
+    - DB_HOST=db
+    - DB_PORT=5432
+    - DB_USER=postgres
+    - DB_PASSWORD=postgres123
+    - DB_NAME=project_ci_test
+  depends_on:
+    - db
+
+frontend_test:
+  build:
+    image: project-ci/frontend-test
+    dockerfile: frontend/Dockerfile
+  volumes:
+    - ./frontend:/app
+  environment:
+    - NODE_ENV=test
+
+db:
+  image: postgres:16-alpine
+  environment:
+    - POSTGRES_USER=postgres
+    - POSTGRES_PASSWORD=postgres123
+    - POSTGRES_DB=project_ci_test
+  cached: true
+
+integration:
+  build:
+    image: project-ci/integration
+    dockerfile_path: codeship/Dockerfile.integration
+  depends_on:
+    - backend_test
+    - db
+  environment:
+    - BACKEND_URL=http://backend_test:3000
