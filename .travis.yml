@@ -73,7 +73,10 @@ script:
   - curl -fsS http://localhost:3002/tasks
 
   - echo "FASE 6 - POST /tasks smoke test"
-  - curl -fsS -X POST http://localhost:3002/tasks -H "Content-Type: application/json" -d '{"title":"Tarea creada desde Travis CI"}'
+  - |
+    curl -fsS -X POST http://localhost:3002/tasks \
+      -H "Content-Type: application/json" \
+      -d '{"title":"Tarea creada desde Travis CI"}'
 
   - echo "FASE 7 - Verificar persistencia"
   - curl -fsS http://localhost:3002/tasks
