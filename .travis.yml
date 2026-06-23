@@ -5,7 +5,9 @@
 
 os: linux
 dist: jammy
-language: minimal
+language: node_js
+node_js:
+  - '20'
 
 services:
   - docker
@@ -35,55 +37,55 @@ cache:
     - $HOME/.docker
 
 before_install:
+  - sudo systemctl stop postgresql || true
+  - sudo systemctl stop apache2 || true
+  - sudo systemctl stop nginx || true
   - docker --version
   - docker compose version
   - node --version
   - npm --version
 
 install:
-  - echo "=== Instalando dependencias del backend ==="
+  - echo "Instalando dependencias del backend"
   - (cd backend && npm ci)
-  - echo "=== Instalando dependencias del frontend ==="
+  - echo "Instalando dependencias del frontend"
   - (cd frontend && npm ci)
 
 before_script:
-  - echo "=== Construyendo imágenes Docker ==="
+  - echo "Construyendo imagenes Docker"
   - docker compose build frontend backend db
 
 script:
-  - echo "=== FASE 1: Tests unitarios backend ==="
+  - echo "FASE 1 - Tests unitarios backend"
   - (cd backend && npm test)
 
-  - echo "=== FASE 2: Tests unitarios frontend ==="
+  - echo "FASE 2 - Tests unitarios frontend"
   - (cd frontend && npm test)
 
-  - echo "=== FASE 3: Levantar stack para tests de integración ==="
+  - echo "FASE 3 - Levantar stack para tests de integracion"
   - docker compose up -d db backend frontend
-  - sleep 25
+  - sleep 30
 
-  - echo "=== FASE 4: Health check del backend ==="
+  - echo "FASE 4 - Health check del backend"
   - curl -fsS http://localhost:3002/health
 
-  - echo "=== FASE 5: GET /tasks ==="
+  - echo "FASE 5 - GET /tasks"
   - curl -fsS http://localhost:3002/tasks
 
-  - echo "=== FASE 6: POST /tasks (smoke test) ==="
-  - |
-    curl -fsS -X POST http://localhost:3002/tasks \
-      -H "Content-Type: application/json" \
-      -d '{"title":"Tarea creada desde Travis CI"}'
+  - echo "FASE 6 - POST /tasks smoke test"
+  - curl -fsS -X POST http://localhost:3002/tasks -H "Content-Type: application/json" -d '{"title":"Tarea creada desde Travis CI"}'
 
-  - echo "=== FASE 7: Verificar persistencia ==="
+  - echo "FASE 7 - Verificar persistencia"
   - curl -fsS http://localhost:3002/tasks
 
-  - echo "=== FASE 8: Frontend responde en puerto 80 ==="
-  - curl -fsS -I http://localhost | head -1
+  - echo "FASE 8 - Frontend responde en puerto 80"
+  - curl -fsS -o /dev/null -w "%{http_code}" http://localhost
 
 after_success:
-  - echo "✅ Build exitoso en rama $TRAVIS_BRANCH (PR=$TRAVIS_PULL_REQUEST)"
+  - echo "Build exitoso en rama $TRAVIS_BRANCH PR=$TRAVIS_PULL_REQUEST"
 
 after_failure:
-  - echo "❌ Build falló - logs de los contenedores:"
+  - echo "Build fallo - logs de los contenedores"
   - docker compose logs --tail=50
 
 after_script:
@@ -104,4 +106,4 @@ jobs:
 
     - stage: "Pull Request Build"
       if: type = pull_request
-      name: "Build de validación de PR"
+      name: "Build de validacion de PR"
