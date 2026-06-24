@@ -5,7 +5,6 @@ pipeline {
         timestamps()
         buildDiscarder(logRotator(numToKeepStr: '10'))
         timeout(time: 30, unit: 'MINUTES')
-        ansiColor('xterm')
     }
 
     environment {
@@ -26,18 +25,18 @@ pipeline {
             parallel {
                 stage('Backend Unit Tests') {
                     steps {
-                        sh '''
-                            docker run --rm -v "$PWD/backend":/app -w /app node:20-alpine \
-                              sh -c "npm ci && npm test"
-                        '''
+                        dir('backend') {
+                            sh 'npm ci'
+                            sh 'npm test'
+                        }
                     }
                 }
                 stage('Frontend Unit Tests') {
                     steps {
-                        sh '''
-                            docker run --rm -v "$PWD/frontend":/app -w /app node:20-alpine \
-                              sh -c "npm ci && npm test"
-                        '''
+                        dir('frontend') {
+                            sh 'npm ci'
+                            sh 'npm test'
+                        }
                     }
                 }
             }
