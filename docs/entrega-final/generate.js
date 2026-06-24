@@ -138,7 +138,7 @@ const doc = new Document({
       space(), space(),
       centered('PROYECTO FINAL', { bold: true, size: hp(16), color: DARK_BLUE }),
       centered('Implementación de un Sistema de Integración Continua', { bold: true, size: hp(14) }),
-      centered('con Docker, Jenkins, Travis CI y Codeship', { bold: true, size: hp(14) }),
+      centered('con Docker, Jenkins, Travis CI y GitHub Actions', { bold: true, size: hp(14) }),
       space(), space(),
       centered('Autores:', { bold: true }),
       centered('Cabana Gutiérrez Fabián Andrés'),
@@ -164,7 +164,7 @@ const doc = new Document({
         + 'cómo se diseñó, implementó y validó un sistema CI/CD completo para una aplicación web full-stack '
         + '(Gestor de Tareas) utilizando: Git/GitHub para control de versiones, Docker para '
         + 'containerización, Jenkins como servidor CI local, Travis CI como servicio CI en la nube '
-        + 'nativo de GitHub, y Codeship Pro para pipelines basados en Docker.'),
+        + 'nativo de GitHub (GitHub Actions) para pipelines basados en Docker.'),
       p('La aplicación sobre la que se aplica el pipeline es un gestor de tareas con arquitectura '
         + 'React + Vite (frontend), Node.js + Express + TypeScript (backend) y PostgreSQL (base de datos), '
         + 'todos comunicados a través de una red Docker dedicada (ci-network).'),
@@ -240,7 +240,7 @@ const doc = new Document({
           ['Base de datos', 'PostgreSQL', '16 Alpine', 'project-ci-db'],
           ['CI local', 'Jenkins LTS + Docker CLI', 'LTS 2.x', 'project-ci-jenkins'],
           ['CI nube 1', 'Travis CI', 'jammy/docker', '(servicio externo)'],
-          ['CI nube 2', 'Codeship Pro', 'Docker-based', '(servicio externo)'],
+          ['CI nube 2', 'GitHub Actions', 'Docker-based, nativo GitHub', 'github.com (integrado)'],
           ['Orquestación', 'Docker Compose', 'v2 (plugin)', 'host'],
         ]
       ),
@@ -272,7 +272,7 @@ const doc = new Document({
           ['develop', 'Integración de todas las features', 'Permanente'],
           ['feature/automated-tests', 'Tests Jest y Vitest', 'Mergeada'],
           ['feature/travis-ci', 'Pipeline Travis CI', 'Mergeada'],
-          ['feature/codeship', 'Pipeline Codeship Pro', 'Mergeada'],
+          ['feature/github-actions-replaces-codeship', 'GitHub Actions (reemplaza Codeship EOL)', 'Mergeada'],
           ['feature/jenkins-enhanced', 'Jenkinsfile con Quality Gates', 'Mergeada'],
           ['release/v3.0.0', 'Release de Entrega 3', 'Mergeada a main'],
         ]
@@ -284,7 +284,7 @@ const doc = new Document({
         [
           ['v1.0.0', '4e7d1d9', 'Entrega 1 — Containerización Docker (3 contenedores)'],
           ['v2.0.0', '47c46c8', 'Entrega 2 — Jenkins como gestor de IC'],
-          ['v3.0.0', 'HEAD', 'Entrega 3 — Travis CI + Codeship + Git Flow completo'],
+          ['v3.0.0', 'HEAD', 'Entrega 3 — Travis CI + GitHub Actions + Git Flow completo'],
         ]
       ),
 
@@ -293,7 +293,7 @@ const doc = new Document({
         ['PR', 'Rama origen', 'Rama destino', 'Descripción'],
         [
           ['#1', 'feature/travis-ci', 'develop', 'feat(ci): integrate Travis CI pipeline'],
-          ['#2', 'feature/codeship', 'develop', 'feat(ci): integrate Codeship Pro pipeline'],
+          ['#2', 'feature/github-actions-replaces-codeship', 'develop', 'ci: replace EOL Codeship with GitHub Actions'],
           ['#3', 'feature/jenkins-enhanced', 'develop', 'feat(jenkins): enhanced pipeline with quality gates'],
         ]
       ),
@@ -471,13 +471,13 @@ const doc = new Document({
       pageBreak(),
 
       // ══════════════════════════════════════════════════════════════════
-      // 8. CODESHIP (ENTREGA 3)
+      // 8. CODESHIP (descontinuado) y GITHUB ACTIONS (sustituto)
       // ══════════════════════════════════════════════════════════════════
-      h1('8. Codeship (Entrega 3 — Escenario 8)'),
+      h1('8. Codeship (descontinuado) y su sustitución: GitHub Actions'),
 
-      h2('8.1 ¿Qué es Codeship?'),
-      p('Codeship es una plataforma de CI/CD en la nube fundada en 2011. En 2018 fue adquirida '
-        + 'por CloudBees, el mayor proveedor de soluciones Jenkins empresariales. Codeship ofrece '
+      h2('8.1 ¿Qué era Codeship?'),
+      p('Codeship fue una plataforma de CI/CD en la nube fundada en 2011. En 2018 fue adquirida '
+        + 'por CloudBees, el mayor proveedor de soluciones Jenkins empresariales. Codeship ofrecía '
         + 'dos modalidades: Basic y Pro (CloudBees, 2024).'),
 
       h2('8.2 Codeship Basic vs Codeship Pro'),
@@ -495,37 +495,86 @@ const doc = new Document({
       ),
 
       h2('8.3 Deployment Pipelines en Codeship'),
-      p('Un Deployment Pipeline en Codeship representa el flujo completo desde el commit hasta '
-        + 'el deploy. Los estados posibles son:'),
+      p('Un Deployment Pipeline en Codeship representaba el flujo completo desde el commit hasta '
+        + 'el deploy. Los estados posibles eran:'),
       bullet('Completado (verde): todos los pasos pasaron exitosamente'),
-      bullet('Con Fallas (rojo): al menos un paso falló; el pipeline se detiene'),
-      bullet('En Proceso (amarillo): el pipeline está ejecutándose actualmente'),
+      bullet('Con Fallas (rojo): al menos un paso falló; el pipeline se detenía'),
+      bullet('En Proceso (amarillo): el pipeline estaba ejecutándose actualmente'),
 
-      h2('8.4 Implementación — codeship-services.yml'),
-      p('Define cuatro servicios Docker para el pipeline:'),
-      bullet('backend_test: build del Dockerfile del backend, volumen ./backend:/app, env de test'),
-      bullet('frontend_test: build del Dockerfile del frontend, volumen ./frontend:/app'),
-      bullet('db: postgres:16-alpine para tests, con cached: true (reutiliza la imagen entre builds)'),
-      bullet('integration: imagen Alpine custom (Dockerfile.integration) con curl/bash/jq'),
+      h2('8.4 Configuración original diseñada (codeship-services.yml / codeship-steps.yml)'),
+      p('Se diseñó la configuración Codeship Pro con cuatro servicios Docker '
+        + '(backend_test, frontend_test, db, integration) y cuatro etapas en el pipeline: '
+        + 'tests paralelos, builds paralelos, tests de integración y release notice. '
+        + 'Estos archivos se conservan en docs/entrega-final/deprecated-codeship/ como evidencia histórica.'),
 
-      h2('8.5 Implementación — codeship-steps.yml'),
-      p('Cuatro etapas en el pipeline:'),
-      bullet('Etapa 1 (type: parallel): tests de backend y frontend ejecutándose simultáneamente'),
-      bullet('Etapa 2 (type: parallel): build del backend y frontend en paralelo'),
-      bullet('Etapa 3: tests E2E de integración (curl al /health y /tasks del backend)'),
-      bullet('Etapa 4 (tag: main): solo se ejecuta en la rama main; imprime mensaje de deploy-ready'),
+      h2('8.5 Anuncio de descontinuación (EOL) — enero 2026'),
+      p('CloudBees anunció el fin de vida útil (EOL) de la plataforma CodeShip a partir de enero de 2026. '
+        + 'Fuente oficial consultada el 23 de junio de 2026: '
+        + 'https://docs.cloudbees.com/docs/cloudbees-common/latest/cloudbees-codeship-eol'),
+      p('Cita textual del aviso oficial: "A partir de enero de 2026, CloudBees dejará de ofrecer soporte '
+        + 'para el producto CloudBees CodeShip [...] CloudBees recomienda migrar a CloudBees Unify, '
+        + 'una plataforma de CI/CD moderna."'),
+      p('Consecuencia práctica: la plataforma ya no acepta nuevos proyectos ni permite activar '
+        + 'repositorios. La configuración diseñada (codeship-services.yml, codeship-steps.yml) no puede '
+        + 'ejecutarse. Esto obligó a sustituir la herramienta para mantener la cobertura del Escenario 8.'),
 
-      h2('8.6 Codeship vs Travis CI vs Jenkins — comparativa'),
+      h2('8.6 Herramienta de sustitución: GitHub Actions'),
+      p('GitHub Actions es el sistema de CI/CD nativo de GitHub, lanzado en 2019 y disponible '
+        + 'de forma gratuita e ilimitada en repositorios públicos. Sus características clave son:'),
+      bullet('Integración nativa: cero configuración externa; los workflows viven en .github/workflows/'),
+      bullet('Docker nativo: soporte completo para docker compose y Docker Buildx en ubuntu-latest'),
+      bullet('Jobs paralelos por defecto: cada job corre en un runner independiente de forma concurrente'),
+      bullet('Dependencias con needs:: permite secuenciar jobs (backend_test → docker_build → integration_test)'),
+      bullet('Disparadores flexibles: on: push, on: pull_request, on: schedule, workflow_dispatch, etc.'),
+      bullet('Artefactos y reportes: upload-artifact para conservar evidencias (coverage, reportes Playwright)'),
+      bullet('Ecosistema de actions: marketplace con miles de actions reutilizables (setup-node, checkout, etc.)'),
+
+      h2('8.7 Tabla de equivalencia Codeship → GitHub Actions'),
       table(
-        ['Criterio', 'Jenkins', 'Travis CI', 'Codeship Pro'],
+        ['Codeship Pro (original)', 'GitHub Actions (sustituto)'],
         [
-          ['Hosting', 'Self-hosted (local/cloud)', 'SaaS (travis-ci.com)', 'SaaS (codeship.com)'],
-          ['Costo', 'Gratis (open source)', 'Free tier + planes de pago', 'Free tier + planes de pago'],
-          ['Config', 'Groovy (Jenkinsfile)', 'YAML (.travis.yml)', 'YAML (2 archivos)'],
-          ['Docker nativo', 'Sí (DooD pattern)', 'Sí (service: docker)', 'Sí (Pro, nativo)'],
-          ['Paralelismo', 'parallel {} en Groovy', 'jobs.include stages', 'type: parallel en steps'],
-          ['Plugins/Integ.', '1800+ plugins', 'Integraciones vía deploy', 'CloudBees ecosystem'],
-          ['Caso de uso ideal', 'Empresa con control total', 'OS en GitHub', 'Equipos Docker-first'],
+          ['codeship-services.yml', 'jobs: con contenedores definidos'],
+          ['codeship-steps.yml (pasos paralelos)', 'jobs paralelos por defecto (backend_test + frontend_test)'],
+          ['type: parallel en steps', 'Jobs sin dependencia needs: corren en paralelo automáticamente'],
+          ['Servicio integration (curl/bash/jq)', 'job: integration_test con curl nativo en ubuntu-latest'],
+          ['tag: main (step exclusivo de main)', 'job: release_notice con if: github.ref == refs/heads/main'],
+          ['Trigger por push', 'on: push'],
+          ['Trigger por Pull Request', 'on: pull_request'],
+          ['(no contemplado originalmente)', 'job: browser_test con Playwright — cubre browser testing del Escenario 8'],
+        ]
+      ),
+
+      h2('8.8 Implementación — análisis de .github/workflows/ci.yml'),
+      p('El workflow define 6 jobs con la siguiente estructura de dependencias:'),
+      bullet('backend_test: instala deps Node 20, ejecuta npm test (Jest + Supertest), sube reporte de cobertura como artefacto'),
+      bullet('frontend_test: instala deps Node 20, ejecuta npm test (Vitest + RTL), sube reporte de cobertura como artefacto'),
+      bullet('docker_build (needs: [backend_test, frontend_test]): ejecuta docker compose build; corre solo si ambos tests pasan'),
+      bullet('integration_test (needs: docker_build): levanta stack completo, espera health check, ejecuta smoke tests HTTP (GET /health, GET /tasks, POST /tasks, GET /tasks para persistencia, curl frontend)'),
+      bullet('browser_test (needs: integration_test): levanta stack, instala Playwright + Chromium, ejecuta 3 tests E2E (título, input visible, crear tarea desde navegador), sube reporte HTML como artefacto'),
+      bullet('release_notice (needs: integration_test, if: rama main + push): imprime información del release (sha, autor, mensaje del commit, últimos 5 commits)'),
+      p('Disparadores: on: push a main/develop/feature/**/release/**/hotfix/** y on: pull_request a main/develop. '
+        + 'Esto cubre tanto el "branch build flow" como el "pull request build flow" del Escenario 8, '
+        + 'replicando exactamente la filosofía de Codeship.'),
+
+      h2('8.9 Evidencias de ejecución'),
+      p('Ver capturas en docs/entrega-final/capturas/:'),
+      bullet('Captura13-github-actions-overview.png — Vista general de la pestaña Actions'),
+      bullet('Captura14-github-actions-jobs-paralelos.png — Los 6 jobs con su grafo de dependencias'),
+      bullet('Captura15-github-actions-run-verde.png — Run completo en verde (todos los jobs pasados)'),
+      bullet('Captura16-github-actions-browser-test.png — Job browser_test con logs de Playwright'),
+      bullet('Captura17-github-actions-pr-build-flow.png — Run disparado por Pull Request (PR build flow)'),
+
+      h2('8.10 GitHub Actions vs Codeship Pro vs Travis CI — comparativa final'),
+      table(
+        ['Criterio', 'Jenkins', 'Travis CI', 'Codeship Pro (EOL)', 'GitHub Actions'],
+        [
+          ['Hosting', 'Self-hosted', 'SaaS (travis-ci.com)', 'SaaS (descontinuado)', 'SaaS nativo GitHub'],
+          ['Costo repos públicos', 'Gratis', 'Free tier limitado', 'No disponible', 'Gratis e ilimitado'],
+          ['Config', 'Groovy (Jenkinsfile)', 'YAML (.travis.yml)', 'YAML (2 archivos)', 'YAML (.github/workflows/)'],
+          ['Docker nativo', 'Sí (DooD)', 'Sí (service: docker)', 'Sí (Pro)', 'Sí (Buildx + Compose)'],
+          ['Paralelismo', 'parallel {} Groovy', 'jobs.include stages', 'type: parallel steps', 'Jobs sin needs: corren en paralelo'],
+          ['Browser testing', 'Plugin Selenium', 'Manual', 'No contemplado', 'Playwright action nativa'],
+          ['Estado actual (Jun 2026)', 'Activo', 'Activo', 'DESCONTINUADO', 'Activo y ejecutando'],
         ]
       ),
       pageBreak(),
@@ -539,16 +588,16 @@ const doc = new Document({
       p('Cuando un desarrollador hace git push a GitHub, se disparan en paralelo tres pipelines:'),
       bullet('Jenkins (self-hosted): recibe webhook → Quality Gates → Build → Deploy → Integration Tests'),
       bullet('Travis CI (SaaS): detecta push vía GitHub App → install → build Docker → unit+integration tests'),
-      bullet('Codeship Pro (SaaS): detecta push vía webhook → servicios Docker → tests paralelos → E2E'),
+      bullet('GitHub Actions (nativo GitHub): detecta push/PR → jobs paralelos → Docker → smoke tests → browser tests (Playwright)'),
 
       h2('9.2 Estrategia de ramas y disparadores'),
       table(
-        ['Rama', 'Jenkins', 'Travis CI', 'Codeship Pro'],
+        ['Rama', 'Jenkins', 'Travis CI', 'GitHub Actions'],
         [
-          ['main', 'Sí (webhook)', 'Sí (branch build)', 'Sí (incluyendo tag step)'],
+          ['main', 'Sí (webhook)', 'Sí (branch build)', 'Sí (incluyendo release_notice job)'],
           ['develop', 'Sí', 'Sí', 'Sí'],
           ['feature/*', 'Sí', 'Sí', 'Sí'],
-          ['PR a develop', 'Sí (opcional)', 'Sí (PR build flow)', 'Sí'],
+          ['PR a develop', 'Sí (opcional)', 'Sí (PR build flow)', 'Sí (on: pull_request)'],
           ['release/*', 'Sí', 'Sí', 'Sí'],
           ['hotfix/*', 'Sí', 'Sí', 'Sí'],
         ]
@@ -560,7 +609,7 @@ const doc = new Document({
         [
           ['v1.0.0', 'main', 'Entrega 1 — Docker (3 contenedores)', 'Mayo 2026'],
           ['v2.0.0', 'main', 'Entrega 2 — Jenkins CI', 'Junio 2026'],
-          ['v3.0.0', 'main', 'Entrega 3 — Travis + Codeship + Git Flow', '23 Jun 2026'],
+          ['v3.0.0', 'main', 'Entrega 3 — Travis + GitHub Actions + Git Flow', '23 Jun 2026'],
         ]
       ),
       pageBreak(),
@@ -584,12 +633,12 @@ const doc = new Document({
       table(
         ['Endpoint', 'Método', 'Resultado esperado', 'Verificado en'],
         [
-          ['/', 'GET', '200 + {status: OK, version}', 'Jest + Travis + Codeship'],
+          ['/', 'GET', '200 + {status: OK, version}', 'Jest + Travis + GitHub Actions'],
           ['/health', 'GET', '200 + {status: OK, container, timestamp}', 'Todos los pipelines'],
           ['/tasks', 'GET', '200 + {success: true, data: [...]}', 'Todos los pipelines'],
           ['/tasks', 'POST {}', '400 + {success: false}', 'Jest'],
           ['/tasks', 'POST {title: " "}', '400', 'Jest'],
-          ['/', 'GET (frontend)', 'HTTP/1.1 200 OK (nginx)', 'Travis + Jenkins'],
+          ['/', 'GET (frontend)', 'HTTP/1.1 200 OK (nginx)', 'Travis + Jenkins + GitHub Actions'],
         ]
       ),
 
@@ -597,9 +646,10 @@ const doc = new Document({
       table(
         ['PR', 'Título', 'Estado'],
         [
-          ['#1', 'feat(ci): integrate Travis CI pipeline', 'Abierto → develop'],
-          ['#2', 'feat(ci): integrate Codeship Pro pipeline', 'Abierto → develop'],
-          ['#3', 'feat(jenkins): enhanced pipeline with quality gates', 'Abierto → develop'],
+          ['#1', 'feat(ci): integrate Travis CI pipeline', 'Mergeado → develop'],
+          ['#2', 'feat(jenkins): enhanced pipeline with quality gates', 'Mergeado → develop'],
+          ['#3', 'feat(tests): backend Jest + frontend Vitest automated tests', 'Mergeado → develop'],
+          ['#4', 'ci: replace EOL Codeship with GitHub Actions', 'Mergeado → develop'],
         ]
       ),
       pageBreak(),
@@ -615,7 +665,7 @@ const doc = new Document({
           ['Backend no alcanzaba la BD al iniciar', 'PostgreSQL tardaba en estar listo', 'healthcheck con pg_isready + depends_on condition: service_healthy', 'Docker Compose'],
           ['Jenkins no veía Docker', 'Usuario jenkins sin permisos de socket', 'Imagen custom con docker-ce-cli + montaje /var/run/docker.sock', 'Jenkins'],
           ['docker-compose: command not found', 'Jenkins usaba docker-compose v1 (desinstalado)', 'Migración a docker compose (plugin v2)', 'Jenkins'],
-          ['npm ci fallaba sin package-lock.json', 'Frontend no tenía lockfile en el repo', 'git add frontend/package-lock.json', 'Travis / Codeship'],
+          ['npm ci fallaba sin package-lock.json', 'Frontend no tenía lockfile en el repo', 'git add frontend/package-lock.json', 'Travis / GitHub Actions'],
           ['nginx no resolvía backend al arrancar', 'DNS de Docker no disponible en startup', 'resolver 127.0.0.11 + variable $backend_upstream', 'Docker / nginx'],
           ['Puerto 3000 ocupado por otro proyecto', 'flexicommerce-web usa 3000 en el mismo host', 'docker-compose.yml: puerto host cambiado a 3002', 'Docker local'],
           ['tsconfig no incluía tipos de Jest', 'types: ["node"] excluía @types/jest', 'Añadir "jest" al array types en tsconfig.json', 'Jest / TypeScript'],
@@ -632,7 +682,7 @@ const doc = new Document({
         [
           ['Omar Alberto Hernández Rey', 'Owner del repositorio, arquitectura Docker, pipeline Jenkins, refactorización app.ts, redacción técnica'],
           ['Diana Castro Torres', 'Configuración Travis CI, tests del frontend (Vitest + RTL), validación de PRs'],
-          ['Jesús Méndez Coronell', 'Configuración Codeship Pro (services + steps YAML), documentación y diagramas'],
+          ['Jesús Méndez Coronell', 'Investigación Codeship Pro (servicios y steps YAML), documentación del EOL y configuración de GitHub Actions (equivalencia y browser testing con Playwright)'],
           ['Fabián Andrés Cabana Gutiérrez', 'Tests del backend (Jest + Supertest), branching strategy, sustentación'],
         ]
       ),
@@ -647,9 +697,10 @@ const doc = new Document({
       p('El módulo de Integración Continua me permitió entender que la automatización no es un '
         + 'lujo, sino una necesidad en proyectos de software colaborativos. La mayor lección fue '
         + 'comprender las diferencias entre herramientas: Jenkins ofrece control total pero requiere '
-        + 'mantenimiento; Travis CI es inmediato pero tiene restricciones de crédito; Codeship Pro '
-        + 'brilla en entornos Docker-first. La combinación de los tres demuestra que no existe una '
-        + 'herramienta universal, sino la herramienta correcta para cada contexto.'),
+        + 'mantenimiento; Travis CI es inmediato pero tiene restricciones de crédito; GitHub Actions '
+        + 'brilla en entornos Docker-first integrados en GitHub. Además, el caso de Codeship enseñó '
+        + 'algo valioso: las herramientas de software tienen ciclos de vida, y un buen ingeniero '
+        + 'debe saber identificar cuando una tecnología entra en EOL y migrar sin perder cobertura.'),
 
       h3('Diana Castro Torres'),
       p('Trabajar con Travis CI me enseñó la importancia de los archivos de configuración '
@@ -659,10 +710,12 @@ const doc = new Document({
         + 'deben probar comportamiento, no implementación.'),
 
       h3('Jesús Méndez Coronell'),
-      p('Codeship Pro fue la revelación del proyecto. La capacidad de definir entornos completamente '
-        + 'personalizados con Docker y ejecutar etapas en paralelo reduce significativamente los '
-        + 'tiempos de feedback. La documentación paralela (codeship-basic.md) me ayudó a entender '
-        + 'que las herramientas evolucionan y es importante conocer las diferencias entre versiones.'),
+      p('Codeship Pro fue el descubrimiento más sorprendente del proyecto, aunque no por las razones '
+        + 'esperadas: al investigarlo descubrimos que fue descontinuado por CloudBees en enero de 2026. '
+        + 'Esto nos obligó a sustituirlo por GitHub Actions, lo cual terminó siendo una lección más '
+        + 'valiosa: entender cómo evaluar la madurez y longevidad de una herramienta antes de adoptarla '
+        + 'en producción. GitHub Actions demostró ser una alternativa superior en integración, '
+        + 'disponibilidad y capacidad de browser testing con Playwright.'),
 
       h3('Fabián Andrés Cabana Gutiérrez'),
       p('El mayor aprendizaje fue el Git Flow. Tener ramas bien definidas con propósitos claros '
@@ -676,8 +729,11 @@ const doc = new Document({
       // ══════════════════════════════════════════════════════════════════
       h1('14. Conclusiones'),
       p('La implementación de un sistema de Integración Continua completo con tres herramientas '
-        + '(Jenkins, Travis CI y Codeship Pro) demostró que la IC no es un concepto único sino '
-        + 'un ecosistema de herramientas complementarias que se adaptan a diferentes contextos y necesidades.'),
+        + '(Jenkins, Travis CI y GitHub Actions, con investigación previa de Codeship Pro que resultó '
+        + 'en EOL durante el desarrollo) demostró que la IC no es un concepto único sino '
+        + 'un ecosistema de herramientas complementarias que se adaptan a diferentes contextos y necesidades. '
+        + 'El caso de la descontinuación de Codeship añadió una dimensión real e inesperada al proyecto: '
+        + 'la gestión del ciclo de vida de herramientas de CI/CD.'),
       p('El modelo Git Flow, con sus cinco tipos de ramas y el versionamiento semántico, proporcionó '
         + 'la estructura de colaboración necesaria para que cuatro desarrolladores trabajaran en '
         + 'paralelo sin conflictos destructivos. Los Pull Requests como puntos de control garantizaron '
@@ -687,8 +743,8 @@ const doc = new Document({
         + 'refactorización de index.ts a app.ts para separar la creación de la app de su arranque '
         + 'fue una decisión técnica que habilita el testing sin una base de datos real.'),
       p('Docker fue el denominador común de todas las herramientas: Jenkins usa DooD pattern, '
-        + 'Travis CI activa el daemon Docker como servicio, y Codeship Pro construye servicios '
-        + 'Docker nativamente. Esto confirma que los contenedores son el estándar de facto para '
+        + 'Travis CI activa el daemon Docker como servicio, y GitHub Actions usa docker/setup-buildx-action '
+        + 'para builds multiplataforma. Esto confirma que los contenedores son el estándar de facto para '
         + 'entornos CI/CD reproducibles y consistentes.'),
       pageBreak(),
 
@@ -697,6 +753,11 @@ const doc = new Document({
       // ══════════════════════════════════════════════════════════════════
       h1('15. Referencias'),
       p('CloudBees. (2024). Codeship documentation. https://documentation.codeship.com'),
+      p('CloudBees. (2026). CloudBees CodeShip End of Life announcement. '
+        + 'https://docs.cloudbees.com/docs/cloudbees-common/latest/cloudbees-codeship-eol '
+        + '(Consultado el 23 de junio de 2026).'),
+      p('GitHub. (2024). GitHub Actions documentation. https://docs.github.com/en/actions'),
+      p('Microsoft / Playwright. (2024). Playwright documentation. https://playwright.dev/docs/intro'),
       p('Docker Inc. (2023). Docker documentation. https://docs.docker.com'),
       p('Docker Inc. (2023). Docker Compose overview. https://docs.docker.com/compose/'),
       p('Fowler, M. (2006). Continuous integration. https://martinfowler.com/articles/continuousIntegration.html'),
@@ -712,7 +773,9 @@ const doc = new Document({
       p('Oliveros Acosta, E. E. (2017e). Lectura fundamental 5: Travis CI. '
         + 'Módulo Énfasis Profesional I — Integración Continua. Politécnico Grancolombiano.'),
       p('Oliveros Acosta, E. E. (2017f). Lectura fundamental 6: Codeship. '
-        + 'Módulo Énfasis Profesional I — Integración Continua. Politécnico Grancolombiano.'),
+        + 'Módulo Énfasis Profesional I — Integración Continua. Politécnico Grancolombiano. '
+        + '[Nota: Codeship fue descontinuado por CloudBees en enero de 2026; en este proyecto '
+        + 'se sustituyó por GitHub Actions manteniendo los mismos conceptos de la lectura.]'),
       p('Oliveros Acosta, E. E. (2017g). Lectura fundamental 7: Gestión de ramas Git Flow. '
         + 'Módulo Énfasis Profesional I — Integración Continua. Politécnico Grancolombiano.'),
       p('Oliveros Acosta, E. E. (2017h). Lectura fundamental 8: DevOps y CI/CD. '
