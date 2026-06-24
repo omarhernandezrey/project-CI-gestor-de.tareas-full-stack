@@ -19,8 +19,8 @@ export default function App() {
     try {
       const res = await fetch(`${API}/tasks`);
       const json = await res.json();
-      setTasks(json.data);
-      setError('');
+      setTasks(Array.isArray(json.data) ? json.data : []);
+      setError(json.success === false ? 'Error al cargar las tareas' : '');
     } catch {
       setError('No se pudo conectar con el servidor');
     } finally {

@@ -179,17 +179,25 @@ jobs:
         with:
           node-version: '20'
 
+      - name: Build images
+        run: docker compose build frontend backend db
+
       - name: Start full stack
         run: |
           docker compose up -d db backend frontend
-          for i in $(seq 1 20); do
-            if curl -sf http://localhost:3002/health > /dev/null 2>&1; then
-              echo "Backend ready"
+          echo "Waiting for backend + DB (checking /tasks endpoint)..."
+          for i in $(seq 1 30); do
+            RESP=$(curl -s http://localhost:3002/tasks 2>/dev/null || true)
+            if echo "$RESP" | grep -q '"success":true'; then
+              echo "Backend + DB ready after ${i} attempts"
               break
             fi
-            sleep 3
+            echo "Attempt $i/30 — not ready yet, sleeping 5s..."
+            sleep 5
           done
-          for i in $(seq 1 10); do
+          curl -fsS http://localhost:3002/tasks
+          echo "Waiting for frontend (port 80)..."
+          for i in $(seq 1 15); do
             if curl -sf http://localhost > /dev/null 2>&1; then
               echo "Frontend ready"
               break
@@ -213,7 +221,8 @@ jobs:
             use: {
               baseURL: 'http://localhost',
               headless: true,
-              actionTimeout: 15000,
+              screenshot: 'only-on-failure',
+              actionTimeout: 20000,
             },
             reporter: [['html', { open: 'never' }], ['list']],
           });
@@ -227,25 +236,24 @@ jobs:
 
             test('la pagina carga y muestra el titulo', async ({ page }) => {
               await page.goto('/');
-              await page.waitForLoadState('networkidle');
+              await page.waitForSelector('.container', { timeout: 20000 });
               await expect(page).toHaveTitle(/Gestor|Tareas|Task/i);
             });
 
             test('el campo de nueva tarea esta visible', async ({ page }) => {
               await page.goto('/');
-              await page.waitForLoadState('networkidle');
+              await page.waitForSelector('.input-row', { timeout: 20000 });
               const input = page.locator('input[placeholder="Nueva tarea..."]');
-              await expect(input).toBeVisible({ timeout: 15000 });
+              await expect(input).toBeVisible({ timeout: 20000 });
             });
 
             test('se puede crear una tarea desde el navegador', async ({ page }) => {
               await page.goto('/');
-              await page.waitForLoadState('networkidle');
+              await page.waitForSelector('.input-row', { timeout: 20000 });
               const input = page.locator('input[placeholder="Nueva tarea..."]');
-              await expect(input).toBeVisible({ timeout: 15000 });
               await input.fill('Tarea creada por Playwright');
               await page.keyboard.press('Enter');
-              await expect(page.getByText('Tarea creada por Playwright')).toBeVisible({ timeout: 15000 });
+              await expect(page.getByText('Tarea creada por Playwright')).toBeVisible({ timeout: 20000 });
             });
 
           });
@@ -253,6 +261,14 @@ jobs:
 
       - name: Run Playwright browser tests
         run: npx playwright test --config=playwright.config.ts
+
+      - name: Upload screenshots on failure
+        uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: playwright-screenshots
+          path: test-results/
+          retention-days: 7
 
       - name: Upload Playwright report
         uses: actions/upload-artifact@v4
