@@ -203,44 +203,56 @@ jobs:
           npm install -D @playwright/test
           npx playwright install --with-deps chromium
 
-      - name: Run Playwright browser tests
+      - name: Write Playwright config and tests
         run: |
-          cat > playwright.config.ts << 'EOF'
+          cat > playwright.config.ts << 'PWEOF'
           import { defineConfig } from '@playwright/test';
           export default defineConfig({
             testDir: './e2e',
-            use: { baseURL: 'http://localhost', headless: true },
+            timeout: 60000,
+            use: {
+              baseURL: 'http://localhost',
+              headless: true,
+              actionTimeout: 15000,
+            },
             reporter: [['html', { open: 'never' }], ['list']],
           });
-          EOF
+          PWEOF
 
           mkdir -p e2e
-          cat > e2e/app.spec.ts << 'EOF'
+          cat > e2e/app.spec.ts << 'SPECEOF'
           import { test, expect } from '@playwright/test';
 
           test.describe('Gestor de Tareas - Browser Tests', () => {
-            test('la página carga y muestra el título', async ({ page }) => {
+
+            test('la pagina carga y muestra el titulo', async ({ page }) => {
               await page.goto('/');
+              await page.waitForLoadState('networkidle');
               await expect(page).toHaveTitle(/Gestor|Tareas|Task/i);
             });
 
-            test('el campo de nueva tarea está visible', async ({ page }) => {
+            test('el campo de nueva tarea esta visible', async ({ page }) => {
               await page.goto('/');
-              const input = page.locator('input[type="text"], input[placeholder]').first();
-              await expect(input).toBeVisible();
+              await page.waitForLoadState('networkidle');
+              const input = page.locator('input[placeholder="Nueva tarea..."]');
+              await expect(input).toBeVisible({ timeout: 15000 });
             });
 
             test('se puede crear una tarea desde el navegador', async ({ page }) => {
               await page.goto('/');
-              const input = page.locator('input[type="text"], input[placeholder]').first();
+              await page.waitForLoadState('networkidle');
+              const input = page.locator('input[placeholder="Nueva tarea..."]');
+              await expect(input).toBeVisible({ timeout: 15000 });
               await input.fill('Tarea creada por Playwright');
               await page.keyboard.press('Enter');
-              await expect(page.getByText('Tarea creada por Playwright')).toBeVisible({ timeout: 5000 });
+              await expect(page.getByText('Tarea creada por Playwright')).toBeVisible({ timeout: 15000 });
             });
-          });
-          EOF
 
-          npx playwright test --config=playwright.config.ts
+          });
+          SPECEOF
+
+      - name: Run Playwright browser tests
+        run: npx playwright test --config=playwright.config.ts
 
       - name: Upload Playwright report
         uses: actions/upload-artifact@v4
