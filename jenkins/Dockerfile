@@ -12,6 +12,12 @@ RUN apt-get update && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
+# Install Node.js 20.x for running tests directly in the controller
+RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - && \
+    apt-get install -y nodejs && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
+
 RUN groupadd -f docker && usermod -aG docker jenkins
 
 USER jenkins
