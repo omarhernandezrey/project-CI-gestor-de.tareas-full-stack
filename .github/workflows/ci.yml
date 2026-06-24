@@ -301,6 +301,5 @@ jobs:
           echo "RELEASE BUILD — rama: ${{ github.ref_name }}"
           echo "Commit: ${{ github.sha }}"
           echo "Author: ${{ github.actor }}"
-          echo "Mensaje: ${{ github.event.head_commit.message }}"
           echo "========================================"
           git log --oneline -5
